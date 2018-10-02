@@ -8,7 +8,7 @@ import sqlite3
 from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
-conn = sqlite3.connect("/home/vadim/PycharmProjects/telegram-review/mydatabase.db", check_same_thread=False)
+conn = sqlite3.connect(os.getenv("DB_PATH"), check_same_thread=False)
 cursor = conn.cursor()
 
 apihelper.proxy = {'https': os.getenv("PROXY")}
