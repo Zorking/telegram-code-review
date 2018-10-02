@@ -28,20 +28,30 @@ def send_msg():
         for x in w:
             if not x.get('work_in_progress'):
                 user_id = rows[randint(0, len(rows) - 1)][0]
-                user = users.get(user_id) or {}
+                users = update_users(users, user_id, x)
+                second_id = rows[randint(0, len(rows) - 1)][0]
+                while second_id == user_id:
+                    second_id = rows[randint(0, len(rows) - 1)][0]
+                users = update_users(users, second_id, x)
 
-                if user.get('messages'):
-                    q = user.get('messages')
-                    q.append(x)
-                    user['messages'] = q
-                else:
-                    user['messages'] = [x]
-                users[user_id] = user
     for user_id, messages in users.items():
         messages = messages.get('messages')
         links = [x.get('web_url') for x in messages]
         message = '\n'.join(links)
         bot.send_message(user_id, message)
+
+
+def update_users(users, user_id, x):
+    user = users.get(user_id) or {}
+
+    if user.get('messages'):
+        q = user.get('messages')
+        q.append(x)
+        user['messages'] = q
+    else:
+        user['messages'] = [x]
+    users[user_id] = user
+    return users
 
 
 if __name__ == '__main__':
