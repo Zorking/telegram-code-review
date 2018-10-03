@@ -1,58 +1,71 @@
-import os
 from random import randint
 
 import requests
 import telebot
 from telebot import apihelper
 import sqlite3
-from dotenv import load_dotenv, find_dotenv
 
-load_dotenv(find_dotenv())
-conn = sqlite3.connect(os.getenv("DB_PATH"), check_same_thread=False)
-cursor = conn.cursor()
+from settings import GITLAB_TOKEN, BOT_API_KEY, PROXY, DB_PATH, PROJECT_IDS, GITLAB_URL, NUMBER_OF_REVIEWERS
 
-apihelper.proxy = {'https': os.getenv("PROXY")}
+connection = sqlite3.connect(DB_PATH, check_same_thread=False)
+cursor = connection.cursor()
 
-bot = telebot.TeleBot(token=os.getenv("BOT_API_KEY"))
+apihelper.proxy = {"https": PROXY}
+
+bot = telebot.TeleBot(token=BOT_API_KEY)
 
 
 def send_msg():
-    cursor.execute("SELECT * FROM groups")
-    rows = cursor.fetchall()
-    projects = os.getenv("PROJECTS_ID").split(', ')
-    params = {'private_token': os.getenv("GITLAB_TOKEN"), 'state': 'opened'}
-    users = {x[0]: '' for x in rows}
+    cursor.execute("SELECT * FROM developer")
+    developers = cursor.fetchall()
+    projects = PROJECT_IDS
+    request_params = {"private_token": GITLAB_TOKEN, "state": "opened"}
+    users = {chat_id: {"username": gitlab_username} for chat_id, _, gitlab_username in developers}
     for project_id in projects:
-        url = 'https://gitlab.com/api/v4/projects/{}/merge_requests'.format(project_id)
-        w = requests.get(url, params=params).json()
-        for x in w:
-            if not x.get('work_in_progress'):
-                user_id = rows[randint(0, len(rows) - 1)][0]
-                users = update_users(users, user_id, x)
-                second_id = rows[randint(0, len(rows) - 1)][0]
-                while second_id == user_id:
-                    second_id = rows[randint(0, len(rows) - 1)][0]
-                users = update_users(users, second_id, x)
+        url = "{}/v4/projects/{}/merge_requests".format(GITLAB_URL, project_id)
+        response = requests.get(url, params=request_params).json()
+        for merge_request in response:
+            users = assign_merge_request(developers, merge_request, users)
 
     for user_id, messages in users.items():
-        messages = messages.get('messages')
-        links = [x.get('web_url') for x in messages]
-        message = '\n'.join(links)
+        messages = messages.get("messages")
+        if not messages:
+            continue
+        links = [x.get("web_url") for x in messages]
+        message = "\n".join(links)
+        message = "Review:\n{}".format(message)
         bot.send_message(user_id, message)
 
 
-def update_users(users, user_id, x):
-    user = users.get(user_id) or {}
+def assign_merge_request(developers, merge_request, users):
+    if not merge_request.get("work_in_progress"):
+        assigned_reviewers = []
+        for _ in range(NUMBER_OF_REVIEWERS):
+            user_id, username = None, None
+            while not user_id or is_correct_reviewer(username, merge_request, user_id, assigned_reviewers):
+                user_id = developers[randint(0, len(developers) - 1)][0]
+                username = users[user_id].get("username")
+            users = update_users(users, user_id, merge_request)
+            assigned_reviewers.append(user_id)
+    return users
 
-    if user.get('messages'):
-        q = user.get('messages')
-        q.append(x)
-        user['messages'] = q
+
+def update_users(users, user_id, merge_request):
+    user = users.get(user_id)
+
+    if user.get("messages"):
+        messages = user.get("messages")
+        messages.append(merge_request)
+        user["messages"] = messages
     else:
-        user['messages'] = [x]
+        user["messages"] = [merge_request]
     users[user_id] = user
     return users
 
 
-if __name__ == '__main__':
+def is_correct_reviewer(username, x, user_id, assined_reviewers):
+    return username == x.get("author", {}).get("username") or user_id in assined_reviewers
+
+
+if __name__ == "__main__":
     send_msg()

@@ -1,14 +1,10 @@
-import os
 import sqlite3
-from dotenv import load_dotenv, find_dotenv
 
-load_dotenv(find_dotenv())
-conn = sqlite3.connect(os.getenv("DB_PATH"))
-cursor = conn.cursor()
+from settings import DB_PATH
 
-# Создание таблицы
-cursor.execute("""CREATE TABLE groups
-                  (chat_id char (255), username char (255))
+connection = sqlite3.connect(DB_PATH)
+cursor = connection.cursor()
+cursor.execute("""CREATE TABLE developer
+                  (chat_id char (255), telegram_username char (255), gitlab_username char (255))
                """)
-
-conn.commit()
+connection.commit()
