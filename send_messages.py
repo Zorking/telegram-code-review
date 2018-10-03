@@ -45,10 +45,14 @@ def send_messages(approvers):
 def assign_merge_request(developers, merge_request, users):
     approvers = []
     for _ in range(NUMBER_OF_REVIEWERS):
-        chat_id, username = None, None
+        chat_id, username, counter = None, None, 0
         while not chat_id or is_correct_reviewer(username, merge_request, chat_id, approvers):
             chat_id = developers[randint(0, len(developers) - 1)][0]
             username = users[chat_id].get("username")
+            counter += 1
+            if counter > 10:
+                print("Not enough developers in DB")
+                exit(1)
         users = update_users(users, chat_id, merge_request)
         approvers.append(chat_id)
     return users
