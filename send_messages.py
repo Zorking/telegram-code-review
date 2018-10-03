@@ -56,7 +56,6 @@ def assign_merge_request(developers, merge_request, users):
 
 def update_users(users, chat_id, merge_request):
     user = users.get(chat_id)
-
     if user.get("messages"):
         messages = user.get("messages")
         messages.append(merge_request)
