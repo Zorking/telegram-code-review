@@ -9,7 +9,6 @@ import sqlite3
 from settings import GITLAB_TOKEN, BOT_API_KEY, PROXY, DB_PATH, PROJECT_IDS, GITLAB_URL, NUMBER_OF_REVIEWERS
 
 logging.basicConfig(filename='logs.log', level=logging.INFO, format='[%(asctime)s] %(message)s')
-logging.FileHandler(filename='logs.log', mode='w')
 logging.getLogger().addHandler(logging.StreamHandler())
 
 connection = sqlite3.connect(DB_PATH, check_same_thread=False)
@@ -24,7 +23,7 @@ def define_approvers():
     cursor.execute("SELECT * FROM developer")
     developers = cursor.fetchall()
     if len(developers) < NUMBER_OF_REVIEWERS:
-        print("Not enough developers in DB")
+        logging.info("Not enough developers in DB")
         exit(1)
     projects = PROJECT_IDS
     request_params = {"private_token": GITLAB_TOKEN, "state": "opened"}
@@ -61,7 +60,7 @@ def assign_merge_request(developers, merge_request, users):
             username = users[chat_id].get("username")
             counter += 1
             if counter > 10:
-                print("Not enough developers in DB")
+                logging.info("Not enough developers in DB")
                 exit(1)
         users = update_users(users, chat_id, merge_request)
         approvers.append(chat_id)

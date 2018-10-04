@@ -8,7 +8,6 @@ import sqlite3
 from settings import DB_PATH, PROXY, BOT_API_KEY, GITLAB_URL
 
 logging.basicConfig(filename='logs.log', level=logging.INFO, format='[%(asctime)s] %(message)s')
-logging.FileHandler(filename='logs.log', mode='w')
 logging.getLogger().addHandler(logging.StreamHandler())
 
 conn = sqlite3.connect(DB_PATH, check_same_thread=False)
