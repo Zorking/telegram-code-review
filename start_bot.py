@@ -1,10 +1,11 @@
 import logging
 
+import requests
 import telebot
 from telebot import apihelper
 import sqlite3
 
-from settings import DB_PATH, PROXY, BOT_API_KEY
+from settings import DB_PATH, PROXY, BOT_API_KEY, GITLAB_URL
 
 logging.basicConfig(filename='logs.log', level=logging.INFO, format='[%(asctime)s] %(message)s')
 logging.FileHandler(filename='logs.log', mode='w')
@@ -25,15 +26,19 @@ def echo_all(message):
     users = cursor.fetchall()
     if users:
         bot.send_message(chat.id, "Chat ID already exists in DB")
-    else:
-        username = message.text
-        if "@" in username:
-            username = username.replace("@", "")
-        cursor.execute("""INSERT INTO developer (chat_id, telegram_username, gitlab_username)
-                          VALUES (?,?,?)""", (chat.id, chat.username, username))
-        conn.commit()
-        bot.send_message(chat.id, "Registration is complete. Thanks!")
-        logging.info("{} has completed registration".format(username))
+        return
+    username = message.text
+    if "@" in username:
+        username = username.replace("@", "")
+    response = requests.get("{}users?username={}".format(GITLAB_URL, username)).json()
+    if not response:
+        bot.send_message(chat.id, "Please enter your gitlab login")
+        return
+    cursor.execute("""INSERT INTO developer (chat_id, telegram_username, gitlab_username)
+                      VALUES (?,?,?)""", (chat.id, chat.username, username))
+    conn.commit()
+    bot.send_message(chat.id, "Registration is complete. Thanks!")
+    logging.info("{} has completed registration".format(username))
 
 
 if __name__ == "__main__":

@@ -23,11 +23,14 @@ bot = telebot.TeleBot(token=BOT_API_KEY)
 def define_approvers():
     cursor.execute("SELECT * FROM developer")
     developers = cursor.fetchall()
+    if len(developers) < NUMBER_OF_REVIEWERS:
+        print("Not enough developers in DB")
+        exit(1)
     projects = PROJECT_IDS
     request_params = {"private_token": GITLAB_TOKEN, "state": "opened"}
     approvers = {chat_id: {"username": gitlab_username} for chat_id, _, gitlab_username in developers}
     for project_id in projects:
-        url = "{}/v4/projects/{}/merge_requests".format(GITLAB_URL, project_id)
+        url = "{}projects/{}/merge_requests".format(GITLAB_URL, project_id)
         response = requests.get(url, params=request_params).json()
         for merge_request in response:
             if merge_request.get("work_in_progress"):
