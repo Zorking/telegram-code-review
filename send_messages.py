@@ -1,3 +1,4 @@
+import logging
 from random import randint
 
 import requests
@@ -6,6 +7,10 @@ from telebot import apihelper
 import sqlite3
 
 from settings import GITLAB_TOKEN, BOT_API_KEY, PROXY, DB_PATH, PROJECT_IDS, GITLAB_URL, NUMBER_OF_REVIEWERS
+
+logging.basicConfig(filename='logs.log', level=logging.INFO, format='[%(asctime)s] %(message)s')
+logging.FileHandler(filename='logs.log', mode='w')
+logging.getLogger().addHandler(logging.StreamHandler())
 
 connection = sqlite3.connect(DB_PATH, check_same_thread=False)
 cursor = connection.cursor()
@@ -32,14 +37,16 @@ def define_approvers():
 
 
 def send_messages(approvers):
-    for chat_id, messages in approvers.items():
-        messages = messages.get("messages")
+    for chat_id, user_info in approvers.items():
+        username = user_info.get("username")
+        messages = user_info.get("messages")
         if not messages:
             continue
         links = [x.get("web_url") for x in messages]
         message = "\n".join(links)
         message = "Review:\n{}".format(message)
         bot.send_message(chat_id, message)
+        logging.info('{} has received {}'.format(username, ', '.join(links)))
 
 
 def assign_merge_request(developers, merge_request, users):
