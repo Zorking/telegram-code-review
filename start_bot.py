@@ -1,8 +1,14 @@
+import logging
+
 import telebot
 from telebot import apihelper
 import sqlite3
 
 from settings import DB_PATH, PROXY, BOT_API_KEY
+
+logging.basicConfig(filename='logs.log', level=logging.INFO, format='[%(asctime)s] %(message)s')
+logging.FileHandler(filename='logs.log', mode='w')
+logging.getLogger().addHandler(logging.StreamHandler())
 
 conn = sqlite3.connect(DB_PATH, check_same_thread=False)
 cursor = conn.cursor()
@@ -27,6 +33,7 @@ def echo_all(message):
                           VALUES (?,?,?)""", (chat.id, chat.username, username))
         conn.commit()
         bot.send_message(chat.id, "Registration is complete. Thanks!")
+        logging.info("{} has completed registration".format(username))
 
 
 if __name__ == "__main__":
